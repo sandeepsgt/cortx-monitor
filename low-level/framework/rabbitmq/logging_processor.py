@@ -27,12 +27,16 @@ from syslog import (LOG_ALERT, LOG_CRIT, LOG_DEBUG, LOG_EMERG, LOG_ERR,
 
 import pika
 
+from cortx.utils.message_bus import MessageBus
+from cortx.utils.message_bus import MessageConsumer
+from cortx.utils.message_bus.error import MessageBusError
 from framework.base.internal_msgQ import InternalMsgQ
 from framework.base.module_thread import ScheduledModuleThread
 from framework.base.sspl_constants import ServiceTypes
 from framework.utils import encryptor
 from framework.utils.autoemail import AutoEmail
-from framework.utils.conf_utils import CLUSTER, GLOBAL_CONF, SSPL_CONF, Conf
+from framework.utils.conf_utils import (CLUSTER, GLOBAL_CONF, SRVNODE,
+                                        SSPL_CONF, Conf, SRVNODE)
 from framework.utils.service_logging import logger
 # Modules that receive messages from this module
 from message_handlers.logging_msg_handler import LoggingMsgHandler
@@ -94,8 +98,13 @@ class LoggingProcessor(ScheduledModuleThread, InternalMsgQ):
         super(LoggingProcessor, self).initialize_msgQ(msgQlist)
 
         self._autoemailer = AutoEmail(conf_reader)
-        # Configure RabbitMQ Exchange to receive messages
-        self._configure_exchange(retry=False)
+        
+        self._read_config()
+        message_bus = MessageBus() 
+        self._consumer = MessageConsumer(message_bus, consumer_id=self._consumer_id,
+                            consumer_group=self._consumer_group, message_type=[self._message_type],
+                            auto_ack=False, offset=self._offset)
+
 
     def run(self):
         """Run the module periodically on its own thread."""
@@ -104,7 +113,16 @@ class LoggingProcessor(ScheduledModuleThread, InternalMsgQ):
 
         self._log_debug("Start accepting requests")
         try:
-            self._connection.consume(callback=self._process_msg)
+            while True:
+                try:
+                    message = self._consumer.receive()
+                    if message:
+                        self._process_msg(message)
+                        self._consumer.ack()
+                except AttributeError as e:
+                    # Message bus throws this exception when there is no message available 
+                    logger.error("LoggingProcessor, Attribute Exception: %s" % str(e))
+                    time.sleep(1)
         except Exception as ae:
             if self.is_running() is True:
                 logger.info("LoggingProcessor ungracefully breaking out of run loop, restarting: %s"
@@ -116,7 +134,7 @@ class LoggingProcessor(ScheduledModuleThread, InternalMsgQ):
 
         self._log_debug("Finished processing successfully")
 
-    def _process_msg(self, ch, method, properties, body):
+    def _process_msg(self, body):
         """Parses the incoming message and hands off to the appropriate module"""
         try:
             # Encode and remove blankspace,\n,\t - Leaving as it might be useful
@@ -182,34 +200,19 @@ class LoggingProcessor(ScheduledModuleThread, InternalMsgQ):
         except Exception as ex:
             logger.error("_process_msg: %r" % ex)
 
-    def _configure_exchange(self, retry=False):
+    def _read_config(self):
         """Configure the RabbitMQ exchange with defaults available"""
-        try:
-            self._virtual_host  = Conf.get(SSPL_CONF, f"{self.LOGGINGPROCESSOR}>{self.VIRT_HOST}",
-                                                                 'SSPL')
-            self._exchange_name = Conf.get(SSPL_CONF, f"{self.LOGGINGPROCESSOR}>{self.EXCHANGE_NAME}",
-                                                                 'sspl-in')
-            self._queue_name    = Conf.get(SSPL_CONF, f"{self.LOGGINGPROCESSOR}>{self.QUEUE_NAME}",
-                                                                 'iem-queue')
-            self._routing_key   = Conf.get(SSPL_CONF, f"{self.LOGGINGPROCESSOR}>{self.ROUTING_KEY}",
-                                                                 'iem-key')
-            self._username      = Conf.get(SSPL_CONF, f"{self.LOGGINGPROCESSOR}>{self.USER_NAME}",
-                                                                 'sspluser')
-            self._password      = Conf.get(SSPL_CONF, f"{self.LOGGINGPROCESSOR}>{self.PASSWORD}",
-                                                                 'sspl4ever')
-
-            cluster_id = Conf.get(GLOBAL_CONF, f"{CLUSTER}>{self.CLUSTER_ID_KEY}",'CC01')
-
-            # Decrypt RabbitMQ Password
-            decryption_key = encryptor.gen_key(cluster_id, ServiceTypes.RABBITMQ.value)
-            self._password = encryptor.decrypt(decryption_key, self._password.encode('ascii'), "LoggingProcessor")
-
-            self._connection = RabbitMQSafeConnection(
-                self._username, self._password, self._virtual_host,
-                self._exchange_name, self._routing_key, self._queue_name
-            )
-        except Exception as ex:
-            logger.error("_configure_exchange: %s" % ex)
+        # Make methods locally available
+        cluster_id = Conf.get(GLOBAL_CONF, f"{CLUSTER}>{self.CLUSTER_ID_KEY}",'CC01')
+        self._node_id = Conf.get(GLOBAL_CONF, f"{CLUSTER}>{SRVNODE}>{self.NODE_ID_KEY}",'SN01')
+        self._consumer_id = Conf.get(GLOBAL_CONF, f"{self.RABBITMQPROCESSOR}>{self.CONSUMER_ID}",
+                                            'sspl_in')
+        self._consumer_group = Conf.get(GLOBAL_CONF, f"{self.RABBITMQPROCESSOR}>{self.CONSUMER_GROUP}",
+                                            'cortx_monitor')
+        self._message_type = Conf.get(GLOBAL_CONF, f"{self.RABBITMQPROCESSOR}>{self.MESSAGE_TYPE}",
+                                            'IEM')
+        self._offset = Conf.get(GLOBAL_CONF, f"{self.RABBITMQPROCESSOR}>{self.OFFSET}",
+                                            'earliest')
 
 
     def shutdown(self):
