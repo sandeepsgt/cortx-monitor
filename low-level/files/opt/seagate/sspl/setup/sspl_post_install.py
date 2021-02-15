@@ -60,6 +60,7 @@ class SSPLPostInstall:
 
         # Global config path in sspl.conf will be referred by sspl-ll service later.
         Conf.load("sspl", sspl_config_path)
+        Conf.load("message_bus", "json:///etc/cortx/message_bus.conf")
         Conf.set("sspl", "SYSTEM_INFORMATION>global_config_url", self.global_config)
         Conf.save("sspl")
 
@@ -145,8 +146,23 @@ class SSPLPostInstall:
         # already configured on the healthy node
         # Configure rabbitmq
         if not os.path.exists(REPLACEMENT_NODE_ENV_VAR_FILE):
-            setup_rmq = Conf.get("sspl", "RABBITMQCLUSTER>setup_rmq")
-            if setup_rmq:
-                Service('dbus').process('start', 'rabbitmq-server.service')
-                sspl_rabbitmq_reinit.main(PRODUCT)
-
+            setup_cluster = Conf.get("sspl", "MESSAGINGCLUSTER>setup_cluster")
+            if setup_cluster:
+                message_bus_type = Conf.get("message_bus", "message_broker>type")
+                print(message_bus_type)
+                if message_bus_type == "rabbitmq":
+                    Service('dbus').process('start', 'rabbitmq-server.service')
+                    sspl_rabbitmq_reinit.main(PRODUCT)
+                elif message_bus_type == "kafka":
+                    # create topics for in and out messages
+                    output, error, returncode = SimpleProcess(
+                    "/opt/kafka/bin/kafka-topics.sh --list --bootstrap-server localhost:9092"
+                    ).run()
+                    if  returncode == 0:
+                        available_topics = set(output.decode().strip().split("\n"))
+                        required_topics = set([Conf.get("sspl", "INGRESSPROCESSOR>message_type"),
+                                            Conf.get("sspl", "EGRESSPROCESSOR>message_type")])
+                        for topic in required_topics - available_topics:
+                            output, error, returncode = SimpleProcess(
+                                f"/opt/kafka/bin/kafka-topics.sh --create --topic {topic} --bootstrap-server localhost:9092"
+                            ).run()

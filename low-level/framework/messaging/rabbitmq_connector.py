@@ -28,7 +28,7 @@ from framework.base.sspl_constants import COMMON_CONFIGS, component, CONSUL_HOST
 from framework.utils.conf_utils import SSPL_CONF, Conf
 
 
-RABBITMQ_CLUSTER_SECTION = 'RABBITMQCLUSTER'
+RABBITMQ_CLUSTER_SECTION = 'MESSAGINGCLUSTER'
 RABBITMQ_CLUSTER_HOSTS_KEY = 'cluster_nodes'
 
 # Onward LDR_R2, consul will be abstracted out and won't exist as hard dependency for SSPL

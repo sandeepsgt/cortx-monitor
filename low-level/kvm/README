@@ -7,7 +7,7 @@ yum install openhpi-dynamic_simulator zabbix-virtual-openhpi
 cp /opt/seagate/<product>/sspl/low-level/kvm/openhpi.conf.sspl /etc/openhpi/openhpi.conf
 
 3) Monitor rabbitmq json msgs by running in a separate window:
-/opt/seagate/<product>/sspl/low-level/tests/manual/consume_rabbitmq.py
+/opt/seagate/<product>/sspl/low-level/tests/manual/consume_framework.messaging.py
 
 4) Align disks by-id to match entries in 2u24_kvm.data
 	a) ls /dev/disk/by-id/*

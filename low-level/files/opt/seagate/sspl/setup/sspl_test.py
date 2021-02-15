@@ -58,9 +58,9 @@ class SSPLTestCmd:
         update_sensor_info('sspl_test')
 
         # Get rabbitmq values from sspl.conf and update sspl_tests.conf
-        rmq_passwd = Conf.get("sspl", "RABBITMQEGRESSPROCESSOR>password")
-        Conf.set("sspl_test", "RABBITMQEGRESSPROCESSOR>password", rmq_passwd)
-        Conf.set("sspl_test", "RABBITMQINGRESSPROCESSORTESTS>password", rmq_passwd)
+        rmq_passwd = Conf.get("sspl", "EGRESSPROCESSOR>password")
+        Conf.set("sspl_test", "EGRESSPROCESSOR>password", rmq_passwd)
+        Conf.set("sspl_test", "INGRESSPROCESSORTESTS>password", rmq_passwd)
         Conf.save("sspl_test")
 
         # TODO: Convert shell script to python

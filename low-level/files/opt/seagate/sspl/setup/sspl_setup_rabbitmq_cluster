@@ -26,7 +26,7 @@ sys.path.insert(0, f'/opt/seagate/cortx/sspl/low-level')
 from framework.utils.config_reader import ConfigReader
 from framework.base.sspl_constants import component, CONSUL_HOST, CONSUL_PORT, COMMON_CONFIGS
 
-CLUSTER_SECTION = 'RABBITMQCLUSTER'
+CLUSTER_SECTION = 'MESSAGINGCLUSTER'
 RABBITMQCTL = '/usr/sbin/rabbitmqctl'
 ERLANG_COOKIE_PATH = '/var/lib/rabbitmq/.erlang.cookie'
 

@@ -41,7 +41,6 @@ from framework.utils.service_logging import logger
 # Modules that receive messages from this module
 from message_handlers.logging_msg_handler import LoggingMsgHandler
 
-from .rabbitmq_connector import RabbitMQSafeConnection
 
 try:
    from systemd import journal
@@ -68,7 +67,7 @@ class LoggingProcessor(ScheduledModuleThread, InternalMsgQ):
     PRIORITY    = 2
 
     # Section and keys in configuration file
-    LOGGINGPROCESSOR    = MODULE_NAME.upper()
+    PROCESSOR    = MODULE_NAME.upper()
     EXCHANGE_NAME       = 'exchange_name'
     QUEUE_NAME          = 'queue_name'
     ROUTING_KEY         = 'routing_key'
@@ -205,13 +204,13 @@ class LoggingProcessor(ScheduledModuleThread, InternalMsgQ):
         # Make methods locally available
         cluster_id = Conf.get(GLOBAL_CONF, f"{CLUSTER}>{self.CLUSTER_ID_KEY}",'CC01')
         self._node_id = Conf.get(GLOBAL_CONF, f"{CLUSTER}>{SRVNODE}>{self.NODE_ID_KEY}",'SN01')
-        self._consumer_id = Conf.get(GLOBAL_CONF, f"{self.RABBITMQPROCESSOR}>{self.CONSUMER_ID}",
+        self._consumer_id = Conf.get(GLOBAL_CONF, f"{self.PROCESSOR}>{self.CONSUMER_ID}",
                                             'sspl_in')
-        self._consumer_group = Conf.get(GLOBAL_CONF, f"{self.RABBITMQPROCESSOR}>{self.CONSUMER_GROUP}",
+        self._consumer_group = Conf.get(GLOBAL_CONF, f"{self.PROCESSOR}>{self.CONSUMER_GROUP}",
                                             'cortx_monitor')
-        self._message_type = Conf.get(GLOBAL_CONF, f"{self.RABBITMQPROCESSOR}>{self.MESSAGE_TYPE}",
+        self._message_type = Conf.get(GLOBAL_CONF, f"{self.PROCESSOR}>{self.MESSAGE_TYPE}",
                                             'IEM')
-        self._offset = Conf.get(GLOBAL_CONF, f"{self.RABBITMQPROCESSOR}>{self.OFFSET}",
+        self._offset = Conf.get(GLOBAL_CONF, f"{self.PROCESSOR}>{self.OFFSET}",
                                             'earliest')
 
 

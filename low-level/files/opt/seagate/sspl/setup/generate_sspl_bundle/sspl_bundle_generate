@@ -45,7 +45,7 @@ class SSPLBundleGenerate(object):
         self.sspl_log_default = f"/var/log/{PRODUCT_FAMILY}/sspl"
         self.iem_log_default = f"/var/log/{PRODUCT_FAMILY}/iem"
         self.sspl_conf_dir = f"/opt/seagate/{PRODUCT_FAMILY}/provisioner/pillar/components/sspl.sls"
-        self.rabbitmq_conf_dir = "/etc/rabbitmq/rabbitmq.config"
+        self.rabbitmq_conf_dir = "/etc/rabbitmq/framework.messaging.config"
         self.rabbitmq_log_dir = "/var/log/rabbitmq"
         self.rabbitmq_status = f"/tmp/{sspl_bundle_tmp}/rabbitmq_status.txt"
         self.ipmi_sel_data = f"/tmp/{sspl_bundle_tmp}/ipmi_sel_data_{str(int(time.time()))}.txt"
@@ -117,11 +117,11 @@ class SSPLBundleGenerate(object):
                 self.consul_sspl_cache: file_dir+"/sspl/consul/consul_sspl_cache.txt",
                 self.consul_system_information: file_dir+"/sspl/consul/consul_system_information.txt",
                 self.consul_storage_enclosure: file_dir+"/sspl/consul/consul_storage_enclosure.txt",
-                self.consul_rabbitmq: file_dir+"/sspl/consul/consul_rabbitmq.txt",
+                self.consul_rabbitmq: file_dir+"/sspl/consul/consul_framework.messaging.txt",
                 self.boot_drvs_dta: file_dir+"/drives_SMART_data/",
                 self.ipmi_sel_data: file_dir+"/ipmi/ipmi_sel_data.txt",
                 self.rabbitmq_status: file_dir+"/rabbitmq/status/rabbitmq_status.txt",
-                self.rabbitmq_conf_dir: file_dir+"/rabbitmq/config/rabbitmq.config",
+                self.rabbitmq_conf_dir: file_dir+"/rabbitmq/config/framework.messaging.config",
                 self.rabbitmq_log_dir: file_dir+"/rabbitmq/logs/",
                 iem_log_dir: file_dir+"/iems/"
             }

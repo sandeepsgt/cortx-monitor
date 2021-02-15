@@ -51,6 +51,7 @@ class SSPLConfig:
         self.role = None
         self.config_index = 'sspl'
         Conf.load(self.config_index, consts.sspl_config_path)
+        Conf.load("message_bus", "json:///etc/cortx/message_bus.conf")
 
     def replace_expr(self, filename:str, key, new_str:str):
 
@@ -189,6 +190,24 @@ class SSPLConfig:
         update_sensor_info(self.config_index)
 
     def get_rabbitmq_cluster_nodes(self):
+        # Get the version. Output can be 3.3.5 or 3.8.9 or in this format
+        rmq_cmd = "rpm -qi rabbitmq-server"
+        output, error, returncode = SimpleProcess(rmq_cmd).run()
+        if returncode:
+            raise SetupError(returncode, error)
+        self.rabbitmq_version = re.search(  r'Version     :\s*([\d.]+)',
+                                            str(output)).group(1)
+
+        # Get the Major release version parsed. (Eg: 3 from 3.8.9)
+        self.rabbitmq_major_release = self.rabbitmq_version[0]
+
+        # Get the Minor release version parsed. (Eg: 3.8 from 3.8.9)
+        self.rabbitmq_minor_release = self.rabbitmq_version[:3]
+
+        # Get the Maitenance release version parsed from minor release.
+        # (Eg: 8 from 3.8)
+        self.rabbitmq_maintenance_release = self.rabbitmq_minor_release[-1]
+
         cluster_nodes = None
         if  self.rabbitmq_major_release == '3' and \
             self.rabbitmq_maintenance_release == '8':
@@ -222,13 +241,16 @@ class SSPLConfig:
                         self.rabbitmq_version)
         return cluster_nodes
 
-    def get_cluster_running_nodes(self, msg_broker : str):
-        if(msg_broker == 'rabbitmq'):
+    def get_cluster_running_nodes(self):
+        message_broker = Conf.get("message_bus", "message_broker>type")
+        if(message_broker == 'rabbitmq'):
             return self.get_rabbitmq_cluster_nodes()
+        elif(message_broker == 'kafka'):
+            return
         else:
             raise SetupError(errno.EINVAL,
                         "Provided message broker '%s' is not supported",
-                        msg_broker)
+                        message_broker)
 
     def process(self):
         cmd = "config"
@@ -238,23 +260,6 @@ class SSPLConfig:
         else:
             raise SetupError(errno.EINVAL, "cmd val should be config")
 
-        # Get the version. Output can be 3.3.5 or 3.8.9 or in this format
-        rmq_cmd = "rpm -qi rabbitmq-server"
-        output, error, returncode = SimpleProcess(rmq_cmd).run()
-        if returncode:
-            raise SetupError(returncode, error)
-        self.rabbitmq_version = re.search(  r'Version     :\s*([\d.]+)',
-                                            str(output)).group(1)
-
-        # Get the Major release version parsed. (Eg: 3 from 3.8.9)
-        self.rabbitmq_major_release = self.rabbitmq_version[0]
-
-        # Get the Minor release version parsed. (Eg: 3.8 from 3.8.9)
-        self.rabbitmq_minor_release = self.rabbitmq_version[:3]
-
-        # Get the Maitenance release version parsed from minor release.
-        # (Eg: 8 from 3.8)
-        self.rabbitmq_maintenance_release = self.rabbitmq_minor_release[-1]
 
         # Skip this step if sspl is being configured for node replacement
         # scenario as consul data is already
@@ -264,9 +269,8 @@ class SSPLConfig:
         # over writing already configured values
         # with which rabbitmq cluster may have been created
         if not os.path.exists(consts.REPLACEMENT_NODE_ENV_VAR_FILE):
-            message_broker="rabbitmq"
             # Get the running nodes from a cluster
-            pout = self.get_cluster_running_nodes(message_broker)
+            pout = self.get_cluster_running_nodes()
 
             # Update cluster_nodes key in consul
             if consts.PRODUCT_NAME == 'LDR_R1':
@@ -274,9 +278,9 @@ class SSPLConfig:
                 port = os.getenv('CONSUL_PORT', consts.CONSUL_PORT)
                 consul_conn = consul.Consul(host=host, port=port)
                 consul_conn.kv.put(
-                        "sspl/config/RABBITMQCLUSTER/cluster_nodes", pout)
+                        "sspl/config/MESSAGINGCLUSTER/cluster_nodes", pout)
             else:
-                Conf.set('sspl', 'RABBITMQCLUSTER>cluster_nodes', pout)
+                Conf.set('sspl', 'MESSAGINGCLUSTER>cluster_nodes', pout)
                 Conf.save('sspl')
 
         # Skip this step if sspl is being configured for node replacement
