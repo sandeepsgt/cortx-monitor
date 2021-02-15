@@ -78,13 +78,6 @@ class SSPLTestCmd:
         # Enable & disable sensors based on environment
         update_sensor_info(SSPL_TEST_CONFIG_INDEX)
 
-        # Get rabbitmq values from sspl.conf and update sspl_tests.conf
-        rmq_passwd = Conf.get(SSPL_CONFIG_INDEX,
-                              "RABBITMQEGRESSPROCESSOR>password")
-        Conf.set(SSPL_TEST_CONFIG_INDEX,
-                 "RABBITMQEGRESSPROCESSOR>password", rmq_passwd)
-        Conf.save(SSPL_TEST_CONFIG_INDEX)
-
         # TODO: Convert shell script to python
         # from cortx.sspl.sspl_test.run_qa_test import RunQATest
         # RunQATest(self.plan, self.avoid_rmq).run()
