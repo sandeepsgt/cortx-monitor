@@ -54,7 +54,7 @@ class ServiceMsgHandler(ScheduledModuleThread, InternalMsgQ):
     DEPENDENCIES = {
         "plugins": [
             "LoggingMsgHandler",
-            "RabbitMQegressProcessor"],
+            "EgressProcessor"],
         "rpms": []
     }
 
@@ -268,7 +268,7 @@ class ServiceMsgHandler(ScheduledModuleThread, InternalMsgQ):
             # Create a service watchdog message and send it out
             jsonMsg = ServiceWatchdogMsg(service_name, state, prev_state,
                             substate, prev_substate, pid, prev_pid).getJson()
-            self._write_internal_msgQ("RabbitMQegressProcessor", jsonMsg)
+            self._write_internal_msgQ("EgressProcessor", jsonMsg)
 
             # Create an IEM if the resulting service state is failed
             if "fail" in state.lower() or \
@@ -325,7 +325,7 @@ class ServiceMsgHandler(ScheduledModuleThread, InternalMsgQ):
         if uuid is not None:
             service_controller_msg.set_uuid(uuid)
         json_msg = service_controller_msg.getJson()
-        self._write_internal_msgQ("RabbitMQegressProcessor", json_msg)
+        self._write_internal_msgQ("EgressProcessor", json_msg)
 
     def send_error_response(self, request, service_name, err_msg, err_no=None):
         """Send error in response."""
@@ -339,7 +339,7 @@ class ServiceMsgHandler(ScheduledModuleThread, InternalMsgQ):
             error_info["error_no"] = f"{err_no} - {str_err}"
         response = self._create_actuator_response(error_info, error_response)
         service_controller_msg = ServiceControllerMsg(response).getJson()
-        self._write_internal_msgQ("RabbitMQegressProcessor",
+        self._write_internal_msgQ("EgressProcessor",
                                                     service_controller_msg)
 
     def _create_actuator_response(self, service_info, is_error=False):
