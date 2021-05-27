@@ -44,4 +44,4 @@ COPY egress_processor.py /opt/seagate/cortx/sspl/low-level/framework/messaging/e
 COPY node_hw.py /opt/seagate/cortx/sspl/low-level/sensors/impl/generic/node_hw.py
 COPY realstor_enclosure.py /opt/seagate/cortx/sspl/low-level/framework/platforms/realstor/realstor_enclosure.py
 COPY message_bus.conf /etc/cortx/message_bus.conf
-ENTRYPOINT ["/opt/seagate/cortx/sspl/low-level/sspl_ll_d"]
+#ENTRYPOINT ["/opt/seagate/cortx/sspl/low-level/sspl_ll_d"]
