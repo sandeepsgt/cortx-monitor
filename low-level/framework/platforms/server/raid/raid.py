@@ -31,10 +31,7 @@ class RAID:
 
     def get_devices(self):
         output, err, returncode = SimpleProcess(f"mdadm --detail --test {self.raid}").run()
-        if returncode == 0:
-            output = output.decode()
-        else:
-            output = err.decode()
+        output = (output + err).decode()
         devices = []
         for state in re.findall(r"^\s*\d+\s*\d+\s*\d+\s*\d+\s*(.*)", output, re.MULTILINE):
             device = {}
@@ -60,11 +57,11 @@ class RAID:
         if returncode == 0:
             return ("OK", "The array is in good health")
         elif returncode == 2:
-            return ("Failed", "The array has multiple failed devices such that it is unusable.")
+            return ("FAULT ", "The array has multiple failed devices such that it is unusable.")
         elif returncode == 1:
-            return ("Degraded", "The array has at least one failed device.")
+            return ("DEGRADED", "The array has at least one failed device.")
         else:
-            return ("Fault", "There was an error while trying to get information about the array.")
+            return ("FAULT", "There was an error while trying to get information about the array.")
 
     def get_data_integrity_status(self):
         status = {

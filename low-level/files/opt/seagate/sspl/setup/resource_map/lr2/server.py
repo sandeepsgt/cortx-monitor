@@ -743,7 +743,7 @@ class ServerMap(ResourceMap):
             uid = disk.path if disk.path else disk.id
             disk_health = self.get_health_template(uid, True)
             health_data = disk.get_health()
-            health = "OK" if (health_data['SMART_health'] == "PASSED") else "Fault"
+            health = "OK" if (health_data['SMART_health'] == "PASSED") else "FAULT"
             self.set_health_data(disk_health, health, specifics=[{"SMART": health_data}])
             disks.append(disk_health)
         logger.debug(self.log.svc_log(
@@ -755,7 +755,7 @@ class ServerMap(ResourceMap):
         psus_health_data = []
         for psu in self.get_psus():
             data = self.get_health_template(f'{psu["Location"]}', True)
-            health = "OK" if (psu["Status"] == "Present, OK") else "Fault"
+            health = "OK" if (psu["Status"] == "Present, OK") else "FAULT"
             self.set_health_data(data, health, specifics=psu)
             psus_health_data.append(data)
         logger.debug(self.log.svc_log(
